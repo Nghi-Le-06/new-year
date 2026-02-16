@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lì Xì Vũ Trụ</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Playfair+Display:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+    background:#020312;
+    overflow:hidden;
+    font-family:'Playfair Display',serif;
+    color:white;
+}
+
+/* COUNTDOWN */
+#countdown{
+    position:absolute;
+    top:50%;left:50%;
+    transform:translate(-50%,-50%);
+    font-family:'Cinzel',serif;
+    font-size:220px;
+    background:linear-gradient(45deg,#fff,#ffd700,#ff4d6d);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    text-shadow:0 0 60px rgba(255,215,0,0.9);
+    animation:pulse 1s infinite alternate;
+    z-index:20;
+}
+@keyframes pulse{
+    from{transform:translate(-50%,-50%) scale(1)}
+    to{transform:translate(-50%,-50%) scale(1.15)}
+}
+
+/* ENVELOPE */
+#envelopeScene{
+    position:absolute;
+    top:50%;left:50%;
+    transform:translate(-50%,-50%);
+    text-align:center;
+    display:none;
+    z-index:20;
+}
+.envelope{
+    width:220px;height:300px;
+    background:linear-gradient(145deg,#b30000,#ff1a1a);
+    border-radius:12px;
+    cursor:pointer;
+    box-shadow:0 0 60px rgba(255,0,0,0.8);
+    transition:0.5s;
+}
+.envelope:hover{transform:scale(1.1)}
+.envelope::after{
+    content:"🧧";
+    font-size:60px;
+    position:absolute;
+    top:50%;left:50%;
+    transform:translate(-50%,-50%);
+}
+
+/* MESSAGE */
+#messageBox{
+    position:absolute;
+    bottom:8%;
+    width:100%;
+    text-align:center;
+    font-size:28px;
+    opacity:0;
+    transition:1s;
+    z-index:30;
+}
+
+/* HEART */
+#heartCanvas{
+    position:absolute;
+    top:50%;left:50%;
+    transform:translate(-50%,-50%);
+    z-index:10;
+}
+
+@keyframes heartbeat{
+    0%{transform:translate(-50%,-50%) scale(1)}
+    50%{transform:translate(-50%,-50%) scale(1.08)}
+    100%{transform:translate(-50%,-50%) scale(1)}
+}
+.beat{
+    animation:heartbeat 1s infinite;
+}
+</style>
+</head>
+<body>
+
+<div id="countdown">3</div>
+<canvas id="fireworks"></canvas>
+<canvas id="heartCanvas"></canvas>
+
+<div id="envelopeScene">
+    <div class="envelope" onclick="openEnvelope()"></div>
+    <p style="margin-top:20px;opacity:0.7">Chạm để mở lì xì</p>
+</div>
+
+<div id="messageBox"></div>
+<audio id="bgMusic" loop>
+    <source src="PIANO.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+
+/* ================= COUNTDOWN ================= */
+let count=3;
+const cd=document.getElementById("countdown");
+const countdown=setInterval(()=>{
+    cd.textContent=count>0?count:"";
+    count--;
+    if(count<0){
+        clearInterval(countdown);
+        cd.style.display="none";
+        startFireworks();
+    }
+},1000);
+
+/* ================= FIREWORKS ================= */
+const fw=document.getElementById("fireworks");
+const fctx=fw.getContext("2d");
+fw.width=innerWidth;
+fw.height=innerHeight;
+
+let particles=[];
+function createFirework(){
+    const x=Math.random()*fw.width;
+    const y=Math.random()*fw.height*0.6;
+    const colors=["#ff4d6d","#ffd700","#00e5ff","#7cffcb","#ff9f1c","#c77dff"];
+    for(let i=0;i<150;i++){
+        particles.push({
+            x,y,
+            angle:Math.random()*2*Math.PI,
+            speed:Math.random()*7+2,
+            alpha:1,
+            color:colors[Math.floor(Math.random()*colors.length)]
+        });
+    }
+}
+function animateFW(){
+    fctx.fillStyle="rgba(0,0,15,0.25)";
+    fctx.fillRect(0,0,fw.width,fw.height);
+    particles.forEach(p=>{
+        p.x+=Math.cos(p.angle)*p.speed;
+        p.y+=Math.sin(p.angle)*p.speed;
+        p.alpha-=0.01;
+        fctx.fillStyle=p.color.replace(")",","+p.alpha+")").replace("rgb","rgba");
+        fctx.beginPath();
+        fctx.arc(p.x,p.y,2,0,2*Math.PI);
+        fctx.fill();
+    });
+    particles=particles.filter(p=>p.alpha>0);
+    requestAnimationFrame(animateFW);
+}
+animateFW();
+
+function startFireworks(){
+    let interval=setInterval(createFirework,600);
+    setTimeout(()=>{
+        clearInterval(interval);
+        document.getElementById("envelopeScene").style.display="block";
+    },10000);
+}
+
+/* ================= HEART WITH SOUL ================= */
+const hc=document.getElementById("heartCanvas");
+const hctx=hc.getContext("2d");
+hc.width=innerWidth;
+hc.height=innerHeight;
+
+let stars=[];
+for(let i=0;i<2500;i++){
+    stars.push({
+        t:Math.random()*Math.PI*2,
+        r:Math.random(),
+        depth:Math.random(),
+        hue:Math.random()*360
+    });
+}
+
+function heartShape(t){
+    return {
+        x:16*Math.pow(Math.sin(t),3),
+        y:13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t)
+    };
+}
+
+function drawHeart(){
+    hctx.clearRect(0,0,hc.width,hc.height);
+    const cx=hc.width/2;
+    const cy=hc.height/2;
+    const scale=Math.min(hc.width,hc.height)/45;
+
+    // Nebula core
+    const gradient=hctx.createRadialGradient(cx,cy,0,cx,cy,200);
+    gradient.addColorStop(0,"rgba(255,100,200,0.4)");
+    gradient.addColorStop(1,"rgba(0,0,0,0)");
+    hctx.fillStyle=gradient;
+    hctx.fillRect(0,0,hc.width,hc.height);
+
+    stars.forEach(s=>{
+        s.t+=0.002*(1+s.depth);
+        const p=heartShape(s.t);
+        const x=cx+p.x*scale*s.r;
+        const y=cy-p.y*scale*s.r;
+        hctx.fillStyle=`hsl(${s.hue},100%,70%)`;
+        hctx.beginPath();
+        hctx.arc(x,y,1.5*(1-s.depth),0,Math.PI*2);
+        hctx.fill();
+    });
+
+    requestAnimationFrame(drawHeart);
+}
+
+function openEnvelope(){
+    document.getElementById("envelopeScene").style.display="none";
+
+    // ===== PLAY PIANO WITH FADE IN =====
+    const music = document.getElementById("bgMusic");
+    music.volume = 0;
+    music.play();
+
+    let fadeIn = setInterval(()=>{
+        if(music.volume < 0.8){
+            music.volume += 0.02;
+        } else {
+            clearInterval(fadeIn);
+        }
+    },100);
+
+    // ===== START HEART + MESSAGE =====
+    hc.classList.add("beat");
+    drawHeart();
+    startMessage();
+}
+
+/* ================= MESSAGE ================= */
+const lines=[
+"Năm mới rồi, moa à...",
+"Thời khắc này, ngoài kia người ta đang cười nói rất nhiều.",
+"Pháo hoa nở rực trên bầu trời.",
+"Những điều ước được nói ra thật nhanh.",
+"Nhưng trong lòng sen, mọi thứ lại chậm lại.",
+
+"Sen không nghĩ về tiền bạc.",
+"Không nghĩ về thành công.",
+"Không nghĩ về những điều lớn lao.",
+"Sen chỉ nghĩ đến một người.",
+"Và người đó là moa.",
+
+"Sen từng tự hỏi,",
+"Điều gì khiến một người trở nên quan trọng đến vậy?",
+"Là vì họ ở bên mình lâu?",
+"Hay vì họ khiến tim mình đập khác đi?",
+"Với sen,",
+"Moa quan trọng không phải vì thời gian.",
+"Mà vì cảm giác.",
+"Cảm giác rằng nếu thiếu moa,",
+"Một phần trong sen sẽ trống đi rất nhiều.",
+
+"Có những lúc sen đã sợ.",
+"Sợ rằng mình chưa đủ tốt.",
+"Sợ rằng mình chưa đủ vững vàng.",
+"Sợ rằng một ngày nào đó,",
+"Moa sẽ mệt mỏi vì sen.",
+"Và bước đi xa hơn một chút.",
+
+"Sen không nói ra những điều đó nhiều.",
+"Nhưng mỗi lần nghĩ đến,",
+"Tim sen lại nặng đi.",
+"Không phải vì nghi ngờ tình cảm.",
+"Mà vì sen biết mình yêu moa nhiều đến mức nào.",
+
+"Nếu năm qua có những ngày moa buồn,",
+"Có những ngày moa cảm thấy cô đơn dù vẫn đang nói chuyện với sen,",
+"Thì đó là điều sen day dứt nhất.",
+"Vì điều duy nhất sen thật sự muốn,",
+"Là làm nơi bình yên cho moa.",
+"Chứ không phải là thêm một điều khiến moa mệt.",
+
+"Sen không hứa sẽ hoàn hảo.",
+"Nhưng sen hứa sẽ học cách yêu moa tốt hơn mỗi ngày.",
+"Không phải yêu bằng những lời hoa mỹ.",
+"Mà bằng sự ở lại.",
+"Bằng những cái ôm đúng lúc.",
+"Bằng sự im lặng khi moa cần được lắng nghe.",
+
+"Và có một điều sen muốn nói thật khẽ...",
+"Dù cho sau này sức khỏe của sen có giảm một chút,",
+"Hay sen có như nào đi nữa,",
+"Thì sen vẫn luôn ở đây với moa.",
+"Ở bên cạnh để yêu moa thật lâu.",
+"Thật sâu.",
+"Không phải vì thói quen.",
+"Mà vì lựa chọn.",
+
+"Nếu một ngày sen không còn mạnh mẽ như bây giờ,",
+"Không còn đủ nhanh nhẹn,",
+"Không còn đủ hoàn hảo theo cách người ta mong đợi,",
+"Thì điều sen mong nhất,",
+"Là trái tim mình vẫn còn đủ sức để yêu moa.",
+"Và nắm tay moa chặt hơn mỗi khi đời làm moa mỏi.",
+
+"Sen không biết tương lai sẽ dài bao nhiêu.",
+"Nhưng sen biết một điều rất rõ.",
+"Tình cảm này không phải là nhất thời.",
+"Nó được xây bằng những lần tổn thương rồi lại chọn ở lại.",
+"Được giữ bằng những đêm không ngủ vì lo cho moa.",
+"Được nuôi lớn bằng sự biết ơn vì moa vẫn còn ở đây.",
+
+"Năm mới này,",
+"Sen không xin điều gì cho riêng mình.",
+"Sen chỉ xin cho moa bình an.",
+"Xin cho những điều làm moa đau dần nhỏ lại.",
+"Xin cho những nỗi lo trong tim moa nhẹ hơn.",
+"Xin cho moa nhìn lại một năm nữa trôi qua,",
+"Và vẫn thấy sen ở đó.",
+
+"Nếu cuộc đời có thử thách chúng ta thêm lần nữa,",
+"Sen không hứa sẽ không run.",
+"Nhưng sen hứa sẽ không buông.",
+
+"Vì giữa thế giới rộng lớn này,",
+"Điều khiến sen thấy mình may mắn nhất,",
+"Là được yêu moa.",
+"Và được moa cho phép yêu.",
+
+"Năm mới rồi...",
+"Sen chỉ mong một điều thôi.",
+"Cho trái tim này còn đủ sức đập vì moa thật lâu.",
+"Cho bàn tay này còn đủ ấm để nắm lấy tay moa.",
+"Và cho hai chúng ta,",
+"Dù thế nào đi nữa,",
+"Vẫn chọn ở lại."
+];
+
+const box=document.getElementById("messageBox");
+let i=0;
+
+function startMessage(){
+    box.style.opacity=1;
+    showLine();
+}
+
+function showLine(){
+    if(i<lines.length){
+        box.style.opacity=0;
+        setTimeout(()=>{
+            box.textContent=lines[i];
+            box.style.opacity=1;
+            i++;
+            setTimeout(showLine,3500);
+        },1000);
+    }
+}
+
+</script>
+</body>
+</html>
